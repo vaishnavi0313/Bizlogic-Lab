@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BizLogic Lab — Exploitation Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+/* ── TOKENS ─────────────────────────────────────────── */
+:root {
+  --bg:        #f0f2f5;
+  --surface:   #ffffff;
+  --surface2:  #f7f8fa;
+  --border:    #e2e6ed;
+  --ink:       #0f172a;
+  --ink2:      #475569;
+  --ink3:      #94a3b8;
+  --accent:    #1e40af;
+  --accent-lt: #eff6ff;
+  --high:      #dc2626;
+  --high-lt:   #fef2f2;
+  --med:       #d97706;
+  --med-lt:    #fffbeb;
+  --safe:      #16a34a;
+  --safe-lt:   #f0fdf4;
+  --radius:    10px;
+  --shadow:    0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.04);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,.10);
+}
+
+/* ── RESET ───────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 15px; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+/* ── LAYOUT ──────────────────────────────────────────── */
+.app { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+
+/* ── SIDEBAR ─────────────────────────────────────────── */
+.sidebar {
+  background: var(--ink);
+  color: #e2e8f0;
+  padding: 28px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+.logo {
+  display: flex; align-items: center; gap: 10px;
+}
+.logo-icon {
+  width: 36px; height: 36px; background: var(--accent);
+  border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+}
+.logo-text { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.05rem; color: #fff; line-height: 1.2; }
+.logo-sub  { font-size: .7rem; color: var(--ink3); font-weight: 400; letter-spacing: .04em; text-transform: uppercase; }
+
+.nav-label { font-size: .68rem; text-transform: uppercase; letter-spacing: .08em; color: #64748b; font-weight: 500; margin-bottom: 6px; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; border-radius: 8px; cursor: pointer;
+  font-size: .875rem; color: #94a3b8; transition: all .15s;
+}
+.nav-item:hover   { background: #1e293b; color: #e2e8f0; }
+.nav-item.active  { background: var(--accent); color: #fff; }
+.nav-item .icon   { font-size: 1rem; width: 20px; text-align: center; }
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 12px;
+  background: #1e293b;
+  border-radius: 8px;
+  font-size: .75rem;
+  color: #64748b;
+  line-height: 1.5;
+}
+.sidebar-footer strong { color: #94a3b8; }
+
+/* ── MAIN ────────────────────────────────────────────── */
+.main { padding: 32px; display: flex; flex-direction: column; gap: 24px; overflow-x: hidden; }
+
+/* ── PAGE HEADER ─────────────────────────────────────── */
+.page-header { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.page-title  { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.6rem; color: var(--ink); }
+.page-sub    { font-size: .85rem; color: var(--ink2); margin-top: 2px; }
+.badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border-radius: 20px;
+  font-size: .72rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+}
+.badge.online { background: var(--safe-lt); color: var(--safe); }
+.badge.offline { background: var(--high-lt); color: var(--high); }
+.pulse { width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* ── CARDS ───────────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 24px;
+}
+.card-title {
+  font-family: 'Syne', sans-serif; font-weight: 700;
+  font-size: 1rem; color: var(--ink); margin-bottom: 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+.card-title .ct-icon { font-size: 1.1rem; }
+
+/* ── STATS ROW ───────────────────────────────────────── */
+.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  box-shadow: var(--shadow);
+}
+.stat-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--ink3); font-weight: 500; }
+.stat-val   { font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800; margin: 4px 0; }
+.stat-sub   { font-size: .75rem; color: var(--ink2); }
+.stat-card.high   { border-top: 3px solid var(--high); }
+.stat-card.medium { border-top: 3px solid var(--med);  }
+.stat-card.safe   { border-top: 3px solid var(--safe); }
+.stat-card.total  { border-top: 3px solid var(--accent); }
+.c-high   { color: var(--high); }
+.c-medium { color: var(--med);  }
+.c-safe   { color: var(--safe); }
+.c-total  { color: var(--accent); }
+
+/* ── FORM ────────────────────────────────────────────── */
+.form-grid { display: grid; grid-template-columns: 1fr 260px auto; gap: 12px; align-items: end; }
+.field label { display: block; font-size: .78rem; font-weight: 500; color: var(--ink2); margin-bottom: 6px; letter-spacing: .02em; }
+.field input, .field select {
+  width: 100%; padding: 10px 14px;
+  border: 1.5px solid var(--border); border-radius: 8px;
+  font-family: 'DM Sans', sans-serif; font-size: .9rem; color: var(--ink);
+  background: var(--surface); outline: none; transition: border .15s;
+}
+.field input:focus, .field select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(30,64,175,.08); }
+.field input::placeholder { color: var(--ink3); }
+
+/* ── BUTTONS ─────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-size: .875rem; font-weight: 500;
+  transition: all .15s; white-space: nowrap;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover:not(:disabled) { background: #1d3ea8; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(30,64,175,.3); }
+.btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+.btn-ghost { background: transparent; color: var(--ink2); border: 1.5px solid var(--border); }
+.btn-ghost:hover { background: var(--surface2); border-color: #cbd5e1; }
+.btn-sm { padding: 6px 14px; font-size: .8rem; }
+.btn-danger { background: var(--high); color: #fff; }
+.btn-danger:hover { background: #b91c1c; }
+
+/* ── ATTACK LEVEL SELECTOR ───────────────────────────── */
+.level-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.level-card {
+  border: 2px solid var(--border); border-radius: var(--radius);
+  padding: 16px; cursor: pointer; transition: all .15s;
+  position: relative; overflow: hidden;
+}
+.level-card:hover  { border-color: #94a3b8; background: var(--surface2); }
+.level-card.sel    { border-color: var(--accent); background: var(--accent-lt); }
+.level-card input  { position: absolute; opacity: 0; pointer-events: none; }
+.lc-icon  { font-size: 1.5rem; margin-bottom: 8px; }
+.lc-name  { font-family: 'Syne', sans-serif; font-weight: 700; font-size: .95rem; color: var(--ink); }
+.lc-desc  { font-size: .78rem; color: var(--ink2); margin-top: 4px; line-height: 1.4; }
+.lc-tag   { display: inline-block; margin-top: 8px; padding: 2px 8px; border-radius: 20px; font-size: .68rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.lc-tag.basic    { background: var(--safe-lt);  color: var(--safe);  }
+.lc-tag.semi     { background: var(--med-lt);   color: var(--med);   }
+.lc-tag.advanced { background: var(--high-lt);  color: var(--high);  }
+
+/* ── LOG TERMINAL ────────────────────────────────────── */
+.terminal {
+  background: #0f172a; border-radius: var(--radius);
+  padding: 16px 18px; font-family: 'DM Mono', monospace;
+  font-size: .78rem; color: #94a3b8; line-height: 1.7;
+  height: 220px; overflow-y: auto;
+  border: 1px solid #1e293b;
+}
+.terminal::-webkit-scrollbar { width: 5px; }
+.terminal::-webkit-scrollbar-track { background: #0f172a; }
+.terminal::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+.t-info  { color: #94a3b8; }
+.t-warn  { color: #fbbf24; }
+.t-high  { color: #f87171; font-weight: 500; }
+.t-safe  { color: #4ade80; }
+.t-time  { color: #475569; }
+.t-empty { color: #334155; font-style: italic; }
+
+/* ── FINDINGS TABLE ──────────────────────────────────── */
+.findings-table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+.findings-table th {
+  text-align: left; padding: 10px 14px;
+  font-size: .7rem; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--ink3); font-weight: 600; border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+}
+.findings-table td { padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.findings-table tr:last-child td { border-bottom: none; }
+.findings-table tr:hover td { background: var(--surface2); }
+.sev-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px; border-radius: 20px; font-size: .7rem; font-weight: 600;
+}
+.sev-badge.HIGH   { background: var(--high-lt); color: var(--high); }
+.sev-badge.MEDIUM { background: var(--med-lt);  color: var(--med);  }
+.sev-badge.SAFE   { background: var(--safe-lt); color: var(--safe); }
+.finding-type  { font-weight: 600; color: var(--ink); }
+.finding-detail { color: var(--ink2); font-size: .82rem; margin-top: 2px; }
+
+/* ── JOBS HISTORY ────────────────────────────────────── */
+.jobs-list { display: flex; flex-direction: column; gap: 8px; }
+.job-row {
+  display: grid; grid-template-columns: 1fr auto auto auto auto;
+  gap: 12px; align-items: center;
+  padding: 12px 16px; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: 8px;
+  font-size: .83rem;
+}
+.job-target { font-family: 'DM Mono', monospace; color: var(--ink); font-weight: 500; }
+.job-attack { color: var(--ink2); text-transform: capitalize; }
+.status-dot {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: .75rem; font-weight: 600; text-transform: uppercase;
+}
+.status-dot.running { color: var(--accent); }
+.status-dot.done    { color: var(--safe);   }
+.status-dot.error   { color: var(--high);   }
+.empty-state { text-align: center; padding: 40px; color: var(--ink3); font-size: .875rem; }
+
+/* ── SPINNER ─────────────────────────────────────────── */
+.spinner {
+  width: 14px; height: 14px; border: 2px solid #e2e8f0;
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin .7s linear infinite; display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── PROGRESS BAR ────────────────────────────────────── */
+.progress-wrap { background: var(--border); border-radius: 4px; height: 5px; overflow: hidden; margin-top: 12px; }
+.progress-bar  { height: 100%; background: var(--accent); border-radius: 4px; transition: width .4s; width: 0%; }
+.progress-bar.indeterminate { animation: indeterminate 1.4s infinite; width: 40%; }
+@keyframes indeterminate { 0%{transform:translateX(-100%)} 100%{transform:translateX(300%)} }
+
+/* ── SERVER STATUS ───────────────────────────────────── */
+.api-url-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.api-url-input { flex: 1; min-width: 200px; }
+
+/* ── MISC ────────────────────────────────────────────── */
+.divider { height: 1px; background: var(--border); }
+.section-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; color: var(--ink3); font-weight: 600; margin-bottom: 10px; }
+.no-findings { color: var(--ink3); font-size: .85rem; text-align: center; padding: 24px; }
+
+/* ── TOAST ───────────────────────────────────────────── */
+#toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: var(--ink); color: #fff;
+  padding: 12px 20px; border-radius: 8px; font-size: .84rem;
+  box-shadow: var(--shadow-lg); opacity: 0;
+  transform: translateY(8px); transition: all .25s; pointer-events: none; z-index: 999;
+}
+#toast.show { opacity: 1; transform: translateY(0); }
+
+/* ── RESPONSIVE ──────────────────────────────────────── */
+@media (max-width: 900px) {
+  .app { grid-template-columns: 1fr; }
+  .sidebar { height: auto; position: static; flex-direction: row; flex-wrap: wrap; padding: 16px; gap: 12px; }
+  .stats-row { grid-template-columns: repeat(2,1fr); }
+  .form-grid { grid-template-columns: 1fr; }
+  .level-cards { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-icon">🛡</div>
+      <div>
+        <div class="logo-text">BizLogic Lab</div>
+        <div class="logo-sub">Exploitation Dashboard</div>
+      </div>
+    </div>
+
+    <nav>
+      <div class="nav-label">Navigation</div>
+      <div class="nav-item active" onclick="showPage('attack')">
+        <span class="icon">⚡</span> Run Attack
+      </div>
+      <div class="nav-item" onclick="showPage('findings')">
+        <span class="icon">🔍</span> Findings
+      </div>
+      <div class="nav-item" onclick="showPage('history')">
+        <span class="icon">📋</span> Job History
+      </div>
+      <div class="nav-item" onclick="showPage('payloads')">
+        <span class="icon">📦</span> Sample Payloads
+      </div>
+    </nav>
+
+    <div>
+      <div class="nav-label">API Connection</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <input id="apiUrlInput" type="text" value="http://localhost:8000"
+          style="width:100%;padding:8px 10px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#e2e8f0;font-size:.8rem;font-family:'DM Mono',monospace;outline:none;" />
+        <button class="btn btn-ghost btn-sm" onclick="checkServerStatus()" style="color:#94a3b8;border-color:#334155;justify-content:center;">
+          Check Connection
+        </button>
+        <div id="serverStatus" class="badge offline" style="justify-content:center;">
+          <span class="pulse"></span> Offline
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <strong>⚠ Warning</strong><br>
+      For authorized penetration testing only. Never run against systems you don't own.
+    </div>
+  </aside>
+
+  <!-- ── MAIN ── -->
+  <main class="main">
+
+    <!-- ── STATS ── -->
+    <div class="stats-row">
+      <div class="stat-card high">
+        <div class="stat-label">High Severity</div>
+        <div class="stat-val c-high" id="statHigh">0</div>
+        <div class="stat-sub">Critical findings</div>
+      </div>
+      <div class="stat-card medium">
+        <div class="stat-label">Medium Severity</div>
+        <div class="stat-val c-medium" id="statMedium">0</div>
+        <div class="stat-sub">Moderate findings</div>
+      </div>
+      <div class="stat-card safe">
+        <div class="stat-label">Safe / Clean</div>
+        <div class="stat-val c-safe" id="statSafe">0</div>
+        <div class="stat-sub">Passed checks</div>
+      </div>
+      <div class="stat-card total">
+        <div class="stat-label">Total Findings</div>
+        <div class="stat-val c-total" id="statTotal">0</div>
+        <div class="stat-sub">This session</div>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: ATTACK ══ -->
+    <div id="page-attack">
+
+      <div class="page-header">
+        <div>
+          <div class="page-title">Run Attack</div>
+          <div class="page-sub">Configure target and select attack level</div>
+        </div>
+      </div>
+
+      <!-- Target URL -->
+      <div class="card">
+        <div class="card-title"><span class="ct-icon">🎯</span> Target Configuration</div>
+        <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+          <div class="field" style="flex:1;min-width:220px;">
+            <label>Target URL</label>
+            <input id="targetUrl" type="text" placeholder="http://localhost:5000"
+                   value="http://localhost:5000" />
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="pingTarget()" style="margin-bottom:1px;">
+            🔗 Ping Target
+          </button>
+        </div>
+        <div id="pingResult" style="margin-top:10px;font-size:.8rem;color:var(--ink3);font-family:'DM Mono',monospace;"></div>
+      </div>
+
+      <!-- Attack Level -->
+      <div class="card">
+        <div class="card-title"><span class="ct-icon">⚙️</span> Attack Level</div>
+        <div class="level-cards">
+          <label class="level-card sel" id="lc-basic" onclick="selectLevel('basic')">
+            <input type="radio" name="level" value="basic" checked />
+            <div class="lc-icon">🔹</div>
+            <div class="lc-name">Basic</div>
+            <div class="lc-desc">Parameter tampering, coupon reuse, basic IDOR checks</div>
+            <span class="lc-tag basic">Low Risk</span>
+          </label>
+          <label class="level-card" id="lc-semi_advanced" onclick="selectLevel('semi_advanced')">
+            <input type="radio" name="level" value="semi_advanced" />
+            <div class="lc-icon">🔸</div>
+            <div class="lc-name">Semi-Advanced</div>
+            <div class="lc-desc">Workflow skip, privilege escalation, endpoint comparison</div>
+            <span class="lc-tag semi">Medium Risk</span>
+          </label>
+          <label class="level-card" id="lc-advanced" onclick="selectLevel('advanced')">
+            <input type="radio" name="level" value="advanced" />
+            <div class="lc-icon">🔥</div>
+            <div class="lc-name">Advanced</div>
+            <div class="lc-desc">Race conditions, replay attacks, combined mutations</div>
+            <span class="lc-tag advanced">High Risk</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Launch + Log -->
+      <div class="card">
+        <div class="card-title"><span class="ct-icon">🖥</span> Execution Console</div>
+
+        <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+          <button class="btn btn-primary" id="launchBtn" onclick="launchAttack()">
+            ⚡ Launch Attack
+          </button>
+          <button class="btn btn-ghost" id="stopBtn" onclick="stopPolling()" style="display:none;">
+            ⏹ Stop Polling
+          </button>
+          <button class="btn btn-ghost" onclick="clearLog()">
+            🗑 Clear
+          </button>
+          <span id="runStatus" style="align-self:center;font-size:.8rem;color:var(--ink2);"></span>
+        </div>
+
+        <div class="progress-wrap" id="progressWrap" style="display:none;">
+          <div class="progress-bar indeterminate" id="progressBar"></div>
+        </div>
+
+        <div class="terminal" id="logTerminal">
+          <span class="t-empty">// Console output will appear here...</span>
+        </div>
+      </div>
+
+      <!-- Download buttons -->
+      <div style="display:flex;gap:10px;flex-wrap:wrap;" id="reportBtns">
+        <button class="btn btn-ghost" id="dlPdfBtn" onclick="downloadReport()" style="display:none;">
+          📄 Download PDF Report
+        </button>
+        <button class="btn btn-ghost" onclick="showPage('findings')">
+          🔍 View Findings
+        </button>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: FINDINGS ══ -->
+    <div id="page-findings" style="display:none;">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Findings</div>
+          <div class="page-sub">Vulnerabilities detected in the last run</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="exportFindingsCSV()">⬇ Export CSV</button>
+      </div>
+
+      <div class="card">
+        <table class="findings-table" id="findingsTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Vulnerability</th>
+              <th>Severity</th>
+              <th>HTTP</th>
+              <th>Time</th>
+            </tr>
+          </thead>
+          <tbody id="findingsTbody">
+            <tr><td colspan="5" class="no-findings">Run an attack to see findings here.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: HISTORY ══ -->
+    <div id="page-history" style="display:none;">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Job History</div>
+          <div class="page-sub">All attack runs this session</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="loadHistory()">↻ Refresh</button>
+      </div>
+
+      <div class="card">
+        <div id="historyList">
+          <div class="empty-state">No jobs yet. Run an attack first.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: PAYLOADS ══ -->
+    <div id="page-payloads" style="display:none;">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Sample Payloads</div>
+          <div class="page-sub">Reference payloads sent during each attack type</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;" id="payloadsGrid"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────────────────────
+let currentJobId  = null;
+let pollInterval  = null;
+let selectedLevel = 'basic';
+let currentFindings = [];
+
+const SAMPLES = [
+  { name: "Price Tampering",       icon: "💰", payload: { item_id: 1, price: 0, quantity: 1 },
+    why: "Server reads price from request body instead of its own catalogue." },
+  { name: "Negative Quantity",     icon: "📉", payload: { item_id: 1, price: 100, quantity: -1 },
+    why: "Negative qty × price = credit to attacker's account." },
+  { name: "Coupon Reuse",          icon: "🎫", payload: { coupon: "SAVE50", order_id: 1001 },
+    why: "No per-user redemption tracking lets coupons be applied ∞ times." },
+  { name: "IDOR",                  icon: "🔑", payload: { user_id: 99, action: "view_orders" },
+    why: "Missing ownership check lets any user read another's data." },
+  { name: "Privilege Escalation",  icon: "👑", payload: { username: "user", role: "admin" },
+    why: "Server trusts client-supplied role field." },
+  { name: "Race Condition",        icon: "⚡", payload: { coupon: "ONCE_ONLY", order_id: 5001 },
+    why: "10 parallel threads → all pass 'not used?' check before commit." },
+  { name: "Replay Attack",         icon: "♻️", payload: { token: "txn_abc123", amount: 500 },
+    why: "Non-invalidated token lets payment be confirmed multiple times." },
+  { name: "Combined Bypass",       icon: "🧨", payload: { price: 0, coupon: "FREE", role: "admin", qty: 9999 },
+    why: "Single-flaw defences fail against multi-flaw combinations." },
+];
+
+// ─────────────────────────────────────────────────────────
+//  HELPERS
+// ─────────────────────────────────────────────────────────
+const apiBase = () => document.getElementById('apiUrlInput').value.trim().replace(/\/+$/, '');
+
+function toast(msg, ms = 2800) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), ms);
+}
+
+function showPage(name) {
+  ['attack','findings','history','payloads'].forEach(p => {
+    document.getElementById(`page-${p}`).style.display = p === name ? '' : 'none';
+  });
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const labels = { attack:0, findings:1, history:2, payloads:3 };
+  document.querySelectorAll('.nav-item')[labels[name]]?.classList.add('active');
+  if (name === 'history')  loadHistory();
+  if (name === 'payloads') renderPayloads();
+  if (name === 'findings') renderFindings(currentFindings);
+}
+
+function selectLevel(level) {
+  selectedLevel = level;
+  ['basic','semi_advanced','advanced'].forEach(l => {
+    document.getElementById(`lc-${l}`)?.classList.toggle('sel', l === level);
+  });
+}
+
+// ─────────────────────────────────────────────────────────
+//  SERVER STATUS CHECK
+// ─────────────────────────────────────────────────────────
+async function checkServerStatus() {
+  const el = document.getElementById('serverStatus');
+  el.innerHTML = '<span class="spinner"></span>';
+  try {
+    const r = await fetch(`${apiBase()}/health`, { signal: AbortSignal.timeout(4000) });
+    const d = await r.json();
+    if (r.ok && d.status === 'ok') {
+      el.className = 'badge online';
+      el.innerHTML = `<span class="pulse"></span> Online &nbsp;·&nbsp; ${d.jobs_in_memory} jobs`;
+    } else { throw new Error(); }
+  } catch {
+    el.className = 'badge offline';
+    el.innerHTML = '<span class="pulse"></span> Offline';
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+//  PING TARGET
+// ─────────────────────────────────────────────────────────
+async function pingTarget() {
+  const url = document.getElementById('targetUrl').value.trim();
+  const res  = document.getElementById('pingResult');
+  res.textContent = 'Pinging...';
+  try {
+    const r = await fetch(`${apiBase()}/attack/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      // We just do a quick GET via the API proxy logic — simplest is direct
+    });
+    // Fallback: just try to fetch the target directly
+  } catch {}
+  // Simple direct ping attempt
+  try {
+    const r = await fetch(url, { signal: AbortSignal.timeout(4000), mode: 'no-cors' });
+    res.innerHTML = `<span style="color:var(--safe)">✓ Target reachable at ${url}</span>`;
+  } catch(e) {
+    res.innerHTML = `<span style="color:var(--ink3)">⚠ Could not directly reach target (expected if behind CORS) — tool will still send requests via backend</span>`;
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+//  LAUNCH ATTACK
+// ─────────────────────────────────────────────────────────
+async function launchAttack() {
+  const target = document.getElementById('targetUrl').value.trim();
+  if (!target) { toast('⚠ Enter a target URL'); return; }
+
+  // Reset UI
+  currentFindings = [];
+  updateStats({ high: 0, medium: 0, safe: 0, total: 0 });
+  clearLog();
+  appendLog(`Launching ${selectedLevel.replace('_',' ')} attack on ${target}...`, 'info');
+
+  document.getElementById('launchBtn').disabled = true;
+  document.getElementById('stopBtn').style.display = '';
+  document.getElementById('progressWrap').style.display = '';
+  document.getElementById('dlPdfBtn') && (document.getElementById('dlPdfBtn').style.display = 'none');
+  document.getElementById('runStatus').textContent = 'Running...';
+
+  try {
+    const res = await fetch(`${apiBase()}/attack/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ target_url: target, attack_level: selectedLevel }),
+    });
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    const data = await res.json();
+    currentJobId = data.job_id;
+    appendLog(`Job started — ID: ${currentJobId}`, 'info');
+    startPolling();
+  } catch(e) {
+    appendLog(`ERROR: ${e.message} — Is the FastAPI server running at ${apiBase()}?`, 'high');
+    document.getElementById('launchBtn').disabled = false;
+    document.getElementById('stopBtn').style.display = 'none';
+    document.getElementById('progressWrap').style.display = 'none';
+    document.getElementById('runStatus').textContent = '';
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+//  POLLING
+// ─────────────────────────────────────────────────────────
+let lastLogLen = 0;
+
+function startPolling() {
+  lastLogLen = 0;
+  pollInterval = setInterval(pollStatus, 1200);
+}
+
+function stopPolling() {
+  clearInterval(pollInterval);
+  pollInterval = null;
+  document.getElementById('launchBtn').disabled = false;
+  document.getElementById('stopBtn').style.display = 'none';
+  document.getElementById('progressWrap').style.display = 'none';
+  document.getElementById('runStatus').textContent = 'Stopped.';
+}
+
+async function pollStatus() {
+  if (!currentJobId) return;
+  try {
+    const res  = await fetch(`${apiBase()}/attack/status/${currentJobId}`);
+    const data = await res.json();
+
+    // Append new log lines
+    const newLines = data.log.slice(lastLogLen);
+    newLines.forEach(line => {
+      const tag = line.includes('[WARN]') ? 'warn' :
+                  line.includes('[ERROR]') ? 'high' : 'info';
+      appendLog(line, tag);
+    });
+    lastLogLen = data.log.length;
+
+    // Update findings + stats live
+    currentFindings = data.findings;
+    updateStats(data.summary);
+
+    if (data.status === 'done') {
+      appendLog(`✓ Attack complete. ${data.summary.total} findings (${data.summary.high} HIGH, ${data.summary.medium} MED, ${data.summary.safe} SAFE).`, 'safe');
+      stopPolling();
+      document.getElementById('runStatus').textContent = 'Complete ✓';
+      document.getElementById('dlPdfBtn').style.display = 'inline-flex';
+      renderFindings(currentFindings);
+    } else if (data.status === 'error') {
+      appendLog('Job error — check server logs.', 'high');
+      stopPolling();
+    }
+  } catch(e) {
+    appendLog(`Poll error: ${e.message}`, 'warn');
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+//  TERMINAL LOG
+// ─────────────────────────────────────────────────────────
+let logInitialized = false;
+
+function appendLog(msg, type = 'info') {
+  const el = document.getElementById('logTerminal');
+  if (!logInitialized) { el.innerHTML = ''; logInitialized = true; }
+  const cls = { info:'t-info', warn:'t-warn', high:'t-high', safe:'t-safe' }[type] || 't-info';
+  const line = document.createElement('div');
+  line.className = cls;
+  // Strip brackets/timestamps for clean display
+  line.textContent = msg.replace(/\[\d{2}:\d{2}:\d{2}\]\s*\[INFO\]\s*/, '')
+                        .replace(/\[\d{2}:\d{2}:\d{2}\]\s*\[WARN\]\s*/, '⚠ ');
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+
+function clearLog() {
+  document.getElementById('logTerminal').innerHTML = '<span class="t-empty">// Console output will appear here...</span>';
+  logInitialized = false;
+}
+
+// ─────────────────────────────────────────────────────────
+//  STATS
+// ─────────────────────────────────────────────────────────
+function updateStats(s) {
+  document.getElementById('statHigh').textContent   = s.high   ?? 0;
+  document.getElementById('statMedium').textContent = s.medium ?? 0;
+  document.getElementById('statSafe').textContent   = s.safe   ?? 0;
+  document.getElementById('statTotal').textContent  = s.total  ?? 0;
+}
+
+// ─────────────────────────────────────────────────────────
+//  FINDINGS TABLE
+// ─────────────────────────────────────────────────────────
+function renderFindings(findings) {
+  const tbody = document.getElementById('findingsTbody');
+  if (!findings || findings.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="no-findings">No findings yet. Run an attack first.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = findings.map((f, i) => `
+    <tr>
+      <td style="color:var(--ink3);font-family:'DM Mono',monospace;font-size:.8rem;">${i+1}</td>
+      <td>
+        <div class="finding-type">${f.type}</div>
+        <div class="finding-detail">${f.detail}</div>
+      </td>
+      <td><span class="sev-badge ${f.severity}">${f.severity}</span></td>
+      <td style="font-family:'DM Mono',monospace;font-size:.8rem;color:var(--ink2);">${f.status}</td>
+      <td style="font-size:.78rem;color:var(--ink3);">${f.time.substring(11,19)}</td>
+    </tr>
+  `).join('');
+}
+
+// ─────────────────────────────────────────────────────────
+//  JOB HISTORY
+// ─────────────────────────────────────────────────────────
+async function loadHistory() {
+  const el = document.getElementById('historyList');
+  el.innerHTML = '<div class="empty-state"><span class="spinner"></span></div>';
+  try {
+    const res  = await fetch(`${apiBase()}/jobs`);
+    const jobs = await res.json();
+    if (!jobs.length) {
+      el.innerHTML = '<div class="empty-state">No jobs yet. Run an attack first.</div>';
+      return;
+    }
+    el.innerHTML = jobs.reverse().map(j => `
+      <div class="job-row">
+        <div>
+          <div class="job-target">${j.target}</div>
+          <div class="job-attack">${j.attack.replace('_',' ')}</div>
+        </div>
+        <div class="status-dot ${j.status}">
+          ${j.status === 'running' ? '<span class="spinner"></span>' : '●'} ${j.status}
+        </div>
+        <div style="font-size:.78rem;color:var(--ink3);">${j.started.substring(11,19)}</div>
+        <div style="font-size:.78rem;font-weight:600;color:var(--ink2);">${j.total_findings} findings</div>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-ghost btn-sm" onclick="loadJobFindings('${j.job_id}')">View</button>
+          <button class="btn btn-ghost btn-sm" onclick="deleteJob('${j.job_id}',this)">✕</button>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {
+    el.innerHTML = `<div class="empty-state" style="color:var(--high);">Cannot reach API — ${e.message}</div>`;
+  }
+}
+
+async function loadJobFindings(jobId) {
+  try {
+    const res  = await fetch(`${apiBase()}/attack/status/${jobId}`);
+    const data = await res.json();
+    currentFindings = data.findings;
+    currentJobId    = jobId;
+    updateStats(data.summary);
+    renderFindings(currentFindings);
+    showPage('findings');
+  } catch(e) { toast(`Error: ${e.message}`); }
+}
+
+async function deleteJob(jobId, btn) {
+  btn.disabled = true;
+  try {
+    await fetch(`${apiBase()}/jobs/${jobId}`, { method: 'DELETE' });
+    loadHistory();
+    toast('Job deleted');
+  } catch(e) { toast(`Error: ${e.message}`); btn.disabled = false; }
+}
+
+// ─────────────────────────────────────────────────────────
+//  PDF DOWNLOAD
+// ─────────────────────────────────────────────────────────
+function downloadReport() {
+  if (!currentJobId) { toast('No completed job'); return; }
+  window.open(`${apiBase()}/attack/report/${currentJobId}`, '_blank');
+}
+
+// ─────────────────────────────────────────────────────────
+//  CSV EXPORT
+// ─────────────────────────────────────────────────────────
+function exportFindingsCSV() {
+  if (!currentFindings.length) { toast('No findings to export'); return; }
+  const header = 'Type,Severity,Detail,HTTP Status,Time\n';
+  const rows   = currentFindings.map(f =>
+    `"${f.type}","${f.severity}","${f.detail}","${f.status}","${f.time}"`
+  ).join('\n');
+  const blob = new Blob([header + rows], { type: 'text/csv' });
+  const a    = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `bizlogic_findings_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  toast('CSV exported');
+}
+
+// ─────────────────────────────────────────────────────────
+//  SAMPLE PAYLOADS
+// ─────────────────────────────────────────────────────────
+function renderPayloads() {
+  const grid = document.getElementById('payloadsGrid');
+  grid.innerHTML = SAMPLES.map(s => `
+    <div class="card" style="cursor:default;">
+      <div class="card-title"><span class="ct-icon">${s.icon}</span> ${s.name}</div>
+      <div style="background:#0f172a;border-radius:8px;padding:14px;font-family:'DM Mono',monospace;font-size:.78rem;color:#a5f3fc;line-height:1.7;margin-bottom:12px;white-space:pre;">${JSON.stringify(s.payload, null, 2)}</div>
+      <div style="font-size:.8rem;color:var(--ink2);line-height:1.5;border-top:1px solid var(--border);padding-top:10px;">
+        <strong style="color:var(--ink);">Why it works:</strong> ${s.why}
+      </div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:10px;"
+        onclick="navigator.clipboard.writeText('${JSON.stringify(s.payload).replace(/'/g,"\\'")}');toast('Copied!')">
+        📋 Copy
+      </button>
+    </div>
+  `).join('');
+}
+
+// ─────────────────────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  checkServerStatus();
+  setInterval(checkServerStatus, 15000);
+  renderPayloads();
+});
+</script>
+</body>
+</html>
